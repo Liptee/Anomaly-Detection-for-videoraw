@@ -99,3 +99,12 @@ def make_samples(sequences, sequence_length):
         for i in range(len(sequence) - sequence_length):
             samples.append(sequence[i:i + sequence_length])
     return samples
+
+
+def return_statisctic_for_list(lst):
+    mean = np.mean(lst)
+    median = np.median(lst)
+    std = np.std(lst)
+    minimum = np.min(lst)
+    maximum = np.max(lst)
+    return mean, median, std, minimum, maximum
