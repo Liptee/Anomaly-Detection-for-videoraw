@@ -42,6 +42,10 @@ class Trainer:
         self.val_data = None
         self.anomaly_data = None
         self.output_model_name = "default_model"
+        self.best_model = None
+        self.best_params = None
+        self.best_loss = 1000000.0
+        self.best_score = 0.0
 
     def add_data(self, path_to_dir, file_format: str = "mp4"):
         """
@@ -145,13 +149,27 @@ class Trainer:
     def set_output_model_name(self, name):
         self.output_model_name = name
 
-    def train(self):
+    def save_best_model(self):
+        if self.best_model is None:
+            raise ValueError("No best model to save")
+        if self.anomaly_data:
+            torch.save(self.best_model.state_dict(), f"{self.output_model_name}_score_{self.best_score:.4f}.pt")
+            with open(f"{self.output_model_name}_score_{self.best_score:.4f}.json", "w") as f:
+                json.dump(self.best_params, f)
+        else:
+            torch.save(self.best_model.state_dict(), f"{self.output_model_name}_loss_{self.best_loss:.4f}.pt")
+            with open(f"{self.output_model_name}_loss_{self.best_loss:.4f}.json", "w") as f:
+                json.dump(self.best_params, f)
+
+    def train(self, save_model: bool = False):
         if self.data is None:
             raise ValueError("No data added to the model")
 
         data = np.array(self.data, dtype=np.float32)
         if self.model_type == "transformer":
             data = data.reshape((data.shape[0], data.shape[1], data.shape[2] * data.shape[3]))
+        elif self.model_type == "cnn":
+            data = data.transpose((0, 3, 1, 2))
         dataset = MyDataset(data)
         dataloader = DataLoader(dataset, batch_size=self.batch_size, shuffle=True)
 
@@ -159,6 +177,8 @@ class Trainer:
             val_data = np.array(self.val_data, dtype=np.float32)
             if self.model_type == "transformer":
                 val_data = val_data.reshape((val_data.shape[0], val_data.shape[1], val_data.shape[2] * val_data.shape[3]))
+            elif self.model_type == "cnn":
+                val_data = val_data.transpose((0, 3, 1, 2))
             val_dataset = MyDataset(np.array(val_data))
             val_dataloader = DataLoader(val_dataset, batch_size=1)
 
@@ -166,6 +186,8 @@ class Trainer:
             anomaly_data = np.array(self.anomaly_data, dtype=np.float32)
             if self.model_type == "transformer":
                 anomaly_data = anomaly_data.reshape((anomaly_data.shape[0], anomaly_data.shape[1], anomaly_data.shape[2] * anomaly_data.shape[3]))
+            elif self.model_type == "cnn":
+                anomaly_data = anomaly_data.transpose((0, 3, 1, 2))
             anomaly_dataset = MyDataset(np.array(anomaly_data))
             anomaly_dataloader = DataLoader(anomaly_dataset, batch_size=1)
 
@@ -221,18 +243,28 @@ class Trainer:
 
             if not self.anomaly_data:
                 score = self.params["mean"]
-                torch.save(self.model.state_dict(), f"{self.output_model_name}_loss_{score:.4f}.pt")
-                with open(f"{self.output_model_name}_loss_{score:.4f}.json", "w") as f:
-                    json.dump(self.params, f)
+                if score < self.best_loss:
+                    self.best_loss = score
+                    self.best_params = self.params
+                    self.best_model = self.model
+                if save_model:
+                    torch.save(self.model.state_dict(), f"{self.output_model_name}_loss_{score:.4f}.pt")
+                    with open(f"{self.output_model_name}_loss_{score:.4f}.json", "w") as f:
+                        json.dump(self.params, f)
 
             else:
                 mean_relation = (anomaly_mean - anomaly_std )/(self.params["mean"] + self.params["std"])
                 median_relation = (anomaly_median - anomaly_std )/(self.params["median"] + self.params["std"])
                 score = mean_relation + median_relation
                 print(f"Diff score: {score:.4f}")
-                torch.save(self.model.state_dict(), f"{self.output_model_name}_score_{score:.4f}.pt")
-                with open(f"{self.output_model_name}_score_{score:.4f}.json", "w") as f:
-                    json.dump(self.params, f)
+                if score > self.best_score:
+                    self.best_score = score
+                    self.best_params = self.params
+                    self.best_model = self.model
+                if save_model:
+                    torch.save(self.model.state_dict(), f"{self.output_model_name}_score_{score:.4f}.pt")
+                    with open(f"{self.output_model_name}_score_{score:.4f}.json", "w") as f:
+                        json.dump(self.params, f)
 
             print("-" * 50)
 
@@ -253,15 +285,55 @@ class MyDataset(Dataset):
 
 
 if __name__ == "__main__":
+    # test CNN model. It should be testing carefully
     params = {
-        "input_size": 128,
-        "num_heads": 4,
-        "hidden_size": 128,
-        "dropout": 0.2,
-        "num_layers": 3
+        "encoder": {
+            "conv1": {
+                "in_channels": 4,
+                "out_channels": 16,
+                "kernel_size": 3,
+                "stride": 1,
+                "padding": 0
+            },
+            "conv2": {
+                "in_channels": 16,
+                "out_channels": 32,
+                "kernel_size": 3,
+                "stride": 1,
+                "padding": 0
+            },
+            "conv3": {
+                "in_channels": 32,
+                "out_channels": 64,
+                "kernel_size": 3,
+                "stride": 1,
+                "padding": 0
+            },
+        },
+        "decoder": {
+            "deconv1": {
+                "in_channels": 64,
+                "out_channels": 32,
+                "kernel_size": 3,
+                "stride": 1,
+                "padding": 0
+            },
+            "deconv2": {
+                "in_channels": 32,
+                "out_channels": 16,
+                "kernel_size": 3,
+                "stride": 1,
+                "padding": 0
+            },
+            "deconv3": {
+                "in_channels": 16,
+                "out_channels": 4,
+                "kernel_size": 3,
+                "stride": 1,
+                "padding": 0
+            }
+        }
     }
-    trainer = Trainer(params)
+    trainer = Trainer(params=params, model="cnn")
     trainer.add_data("test_data")
-    trainer.add_anomaly_data("test_data_2")
-    trainer.set_output_model_name("models/test_model")
     trainer.train()
