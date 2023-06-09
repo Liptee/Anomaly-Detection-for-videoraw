@@ -61,7 +61,9 @@ model.create_validation_set(validation_size=0.1)
 ```
 ### Set model name
 This method allow you choose path and name with which the model will be saved (in default it is `default_model`).
-
+```python
+model.set_model_name("path/to/model/name")
+```
 ### Training
 After you adding all necessary data, you can start training the model. For this you need to call the `train` method. You can specify `save_model` (in default it is `False`) if you want save model in every epoch.
 ```python
@@ -72,3 +74,16 @@ Trainer can memorize best model and save it. For this you need to call the `save
 ```python
 model.save_best_model()
 ```
+
+## Test Model
+In `test` module you can call `test` function.
+```python
+from test import test
+test(source="path/to/your/video.mp4",
+     model_path="path/to/your/model.pt",
+     params_path="path/to/your/model/params.json",
+     model_type="transformer",
+     criterion="MSELoss")
+```
+
+In `source` you can also specify `0` and then the model will take data from your webcam.
