@@ -6,7 +6,6 @@ This repository contains tools to train your own model for detecting abnormal hu
 * Transformer Based
 
 ## Requirements
----
 At the current moment, the **mediapipe** framework doest not work with the latest version of Python. Repository was developed on Python 3.8, so it's most recommended.
 
 List of using libraries:
@@ -19,7 +18,6 @@ List of using libraries:
 * **numpy** 1.24.3
 
 ## How to use
----
 The main class in this code that you will need to work with is the `Trainer` class. It allows you to specify model type, model parameters, training parameters, add data for training and validation, as well as create a set of abnormal data, and of course train the model.
 
 
