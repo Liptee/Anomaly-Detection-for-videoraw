@@ -24,7 +24,7 @@ def extract_sequential(path_to_video, make_mirrors=False):
     """
     Extracts sequential data from a video
     :param path_to_video: path to video
-    :return
+    :return list of sequences. Sequence is a list of frames. Frames are numpy arrays with shape (32, 4)
     """
     results = []
     one_sequnce = []
@@ -67,7 +67,7 @@ def from_landmarks_to_array(landmarks):
     """
     Converts landmarks to a numpy array
     :param landmarks: landmarks
-    :return: numpy array
+    :return: numpy array with shape (32, 4)
     """
     res = np.zeros((32, 4))
 
@@ -92,7 +92,7 @@ def make_samples(sequences, sequence_length):
     Makes samples from sequences
     :param sequences: list of sequences
     :param sequence_length: length of each sequence
-    :return: list of samples
+    :return: list of samples. Every sample is a sequence of length sequence_length
     """
     samples = []
     for sequence in sequences:
