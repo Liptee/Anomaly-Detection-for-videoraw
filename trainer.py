@@ -8,7 +8,7 @@ import pickle
 import numpy as np
 import json
 
-
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 class Trainer:
     def __init__(self,
                  params: dict,
@@ -199,6 +199,7 @@ class Trainer:
             print(f"Epoch {epoch + 1}/{self.num_epochs}")
             self.model.train()
             for batch in dataloader:
+                batch = batch.to(self.device)
                 self.optimizer.zero_grad()
                 output = self.model(batch)
                 loss = self.criterion(output, batch)
@@ -212,6 +213,7 @@ class Trainer:
                 self.model.eval()
                 with torch.no_grad():
                     for batch in val_dataloader:
+                        batch = batch.to(self.device)
                         output = self.model(batch)
                         loss = self.criterion(output, batch)
                         val_losses.append(loss.item())
@@ -222,6 +224,7 @@ class Trainer:
                 self.model.eval()
                 with torch.no_grad():
                     for batch in anomaly_dataloader:
+                        batch = batch.to(self.device)
                         output = self.model(batch)
                         loss = self.criterion(output, batch)
                         anomaly_losses.append(loss.item())
