@@ -2,7 +2,7 @@ def init_transformer_params(num_heads=64,
                             hidden_size=512,
                             dropout=0.1,
                             num_layers=6):
-    if hidden_size % num_heads != 0:
+    if 128 % num_heads != 0:
         raise ValueError("128 should be divisible by num_heads")
     params = {
         "input_size": 128,
