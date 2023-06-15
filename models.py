@@ -1,6 +1,9 @@
 import torch.nn as nn
 
 
+######################################
+######### Transformer model ##########
+######################################
 class Transformer(nn.Module):
     def __init__(self, params: dict):
         if params["input_size"] % params["num_heads"] != 0:
@@ -28,6 +31,9 @@ class Transformer(nn.Module):
         return decoded
 
 
+######################################
+########### CNN model ################
+######################################
 class CNN(nn.Module):
     def __init__(self, params: dict):
         super(CNN, self).__init__()
@@ -85,5 +91,77 @@ class CNN_Decoder(nn.Module):
         x = nn.functional.relu(self.deconv1(x))
         x = nn.functional.relu(self.deconv2(x))
         x = nn.functional.relu(self.deconv3(x))
+
+        return x
+
+
+######################################
+########### CNN+FC model #############
+######################################
+
+class FC_CNN_Encoder(nn.Module):
+    def __init__(self, params: dict):
+        super(FC_CNN_Encoder, self).__init__()
+        self.conv1 = nn.Conv2d(in_channels=params["conv1"]["in_channels"],
+                               out_channels=params["conv1"]["out_channels"],
+                               kernel_size=params["conv1"]["kernel_size"],
+                               stride=params["conv1"]["stride"])
+        self.conv2 = nn.Conv2d(in_channels=params["conv2"]["in_channels"],
+                               out_channels=params["conv2"]["out_channels"],
+                               kernel_size=params["conv2"]["kernel_size"],
+                               stride=params["conv2"]["stride"])
+        self.flatten = nn.Flatten()
+        self.fc1 = nn.Linear(in_features=params["fc1"]["in_features"],
+                             out_features=params["fc1"]["out_features"])
+        self.fc2 = nn.Linear(in_features=params["fc2"]["in_features"],
+                             out_features=params["fc2"]["out_features"])
+
+    def forward(self, x):
+        x = nn.functional.relu(self.conv1(x))
+        x = nn.functional.relu(self.conv2(x))
+        x = self.flatten(x)
+        x = nn.functional.relu(self.fc1(x))
+        x = nn.functional.relu(self.fc2(x))
+
+        return x
+
+
+class FC_CNN_Decoder(nn.Module):
+    def __init__(self, params: dict):
+        super(FC_CNN_Decoder, self).__init__()
+        self.fc1 = nn.Linear(in_features=params["fc1"]["in_features"],
+                             out_features=params["fc1"]["out_features"])
+        self.fc2 = nn.Linear(in_features=params["fc2"]["in_features"],
+                             out_features=params["fc2"]["out_features"])
+        self.unflatten = nn.Unflatten(dim=1,
+                                      unflattened_size=params["unflatten"]["unflattened_size"])
+        self.conv1 = nn.ConvTranspose2d(in_channels=params["conv1"]["in_channels"],
+                                        out_channels=params["conv1"]["out_channels"],
+                                        kernel_size=params["conv1"]["kernel_size"],
+                                        stride=params["conv1"]["stride"])
+        self.conv2 = nn.ConvTranspose2d(in_channels=params["conv2"]["in_channels"],
+                                        out_channels=params["conv2"]["out_channels"],
+                                        kernel_size=params["conv2"]["kernel_size"],
+                                        stride=params["conv2"]["stride"])
+
+    def forward(self, x):
+        x = nn.functional.relu(self.fc1(x))
+        x = nn.functional.relu(self.fc2(x))
+        x = self.unflatten(x)
+        x = nn.functional.relu(self.conv1(x))
+        x = nn.functional.relu(self.conv2(x))
+
+        return x
+
+
+class FC_CNN(nn.Module):
+    def __init__(self, params: dict):
+        super(FC_CNN, self).__init__()
+        self.encoder = FC_CNN_Encoder(params["encoder"])
+        self.decoder = FC_CNN_Decoder(params["decoder"])
+
+    def forward(self, x):
+        x = self.encoder(x)
+        x = self.decoder(x)
 
         return x

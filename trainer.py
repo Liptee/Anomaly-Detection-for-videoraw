@@ -1,4 +1,4 @@
-from models import Transformer, CNN
+from models import Transformer, CNN, FC_CNN
 from sklearn.model_selection import train_test_split
 import torch
 from torch import nn, optim
@@ -25,6 +25,8 @@ class Trainer:
             self.model = Transformer(params)
         elif model == "cnn":
             self.model = CNN(params)
+        elif model == "fc_cnn":
+            self.model = FC_CNN(params)
         else:
             raise ValueError("model should be either transformer or cnn")
         params["sequence_length"] = sequence_length
@@ -161,15 +163,18 @@ class Trainer:
             with open(f"{self.output_model_name}_loss_{self.best_loss:.4f}.json", "w") as f:
                 json.dump(self.best_params, f)
 
-    def train(self, save_model: bool = False):
+    def train(self, save_model: bool = False, transpose=(0, 3, 1, 2)):
+        if transpose[0] != 0:
+            raise ValueError("First dimension must be batch size in transpose. Change transpose parameter")
         if self.data is None:
             raise ValueError("No data added to the model")
 
         data = np.array(self.data, dtype=np.float32)
         if self.model_type == "transformer":
             data = data.reshape((data.shape[0], data.shape[1], data.shape[2] * data.shape[3]))
-        elif self.model_type == "cnn":
-            data = data.transpose((0, 3, 1, 2))
+        elif self.model_type == "cnn" or self.model_type == "fc_cnn":
+            data = data.transpose(transpose)
+
         dataset = MyDataset(data)
         dataloader = DataLoader(dataset, batch_size=self.batch_size, shuffle=True)
 

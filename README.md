@@ -1,6 +1,5 @@
 This repository contains tools to train your own model for detecting abnormal human behaviour using the [mediapipe](https://developers.google.com/mediapipe) framework. The models are built based on autoencoders with different architectures:
-* A simple Neural Network with fully-connected layers (**unrealized**)
-* Based on 1D Convolutional Neural Network (**unrealized**)
+* A simple Neural Network with fully-connected layers
 * Based on 2D Convolutional Neural Network
 * Based on 3D Convolutional Neural Network (**if it needs to realize**)
 * Transformer Based
@@ -33,7 +32,7 @@ The `init_transformer_params` function returns a dictionary with the default par
 
 You can also specify the following parameters during initialization:
 * `params` - dictionary with parameters for the model. From `parameters` module you can import functions to initialize parameters for different models.
-* `model`: str - model type. Can be one of the following: `nn`, `cnn`, `transformer`. Default: `transformer`. 
+* `model`: str - model type. Can be one of the following: `fc_cnn`, `cnn`, `transformer`. Default: `transformer`. 
 * `criterin` - loss function. Default: `MSELoss()`.
 * `learning_rate` - learning rate. Default: `0.001`.
 * `optimizer` - optimizer. Default: `Adam`.
@@ -65,8 +64,9 @@ model.set_model_name("path/to/model/name")
 ### Training
 After you adding all necessary data, you can start training the model. For this you need to call the `train` method. You can specify `save_model` (in default it is `False`) if you want save model in every epoch.
 ```python
-model.train(save_model=True)
+model.train(save_model=True, transpose=(0, 3, 1, 2))
 ```
+Parameter `transpose` you can specify if you work with CNN type model. Note that if you change this parameter from default (0, 3, 1, 2), you also need to initialize parameter with specifying values.
 ### Save best model
 Trainer can memorize best model and save it. For this you need to call the `save_best_model` method.
 ```python
@@ -81,7 +81,9 @@ test(source="path/to/your/video.mp4",
      model_path="path/to/your/model.pt",
      params_path="path/to/your/model/params.json",
      model_type="transformer",
-     criterion="MSELoss")
+     criterion="MSELoss",
+     transpose=(0, 3, 1, 2)
+     )
 ```
 
 In `source` you can also specify `0` and then the model will take data from your webcam.

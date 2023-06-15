@@ -13,6 +13,7 @@ def init_transformer_params(num_heads=64,
     }
     return params
 
+
 def init_cnn_params(conv1_out_channels=3,
                     conv2_out_channels=2,
                     conv3_out_channels=1,
@@ -64,4 +65,69 @@ def init_cnn_params(conv1_out_channels=3,
             },
         },
     }
+    return params
+
+
+def init_fc_cnn_params(conv_1_in_channels=4,
+                       conv_1_out_channels=6,
+                       conv_1_kernel_size=3,
+                       conv_1_stride=1,
+                       conv_2_out_channels=8,
+                       conv_2_kernel_size=3,
+                       conv_2_stride=1,
+                       flatten_size=(8, 28),
+                       fc1_out_features=128,
+                       fc2_out_features=64
+                       ):
+    FLATTEN_SIZE = conv_2_out_channels * flatten_size[0] * flatten_size[1]
+    params = {
+        "encoder": {
+            "conv1": {
+                "in_channels": conv_1_in_channels,
+                "out_channels": conv_1_out_channels,
+                "kernel_size": conv_1_kernel_size,
+                "stride": conv_1_stride
+            },
+            "conv2": {
+                "in_channels": conv_1_out_channels,
+                "out_channels": conv_2_out_channels,
+                "kernel_size": conv_2_kernel_size,
+                "stride": conv_2_stride
+            },
+            "fc1": {
+                "in_features": FLATTEN_SIZE,
+                "out_features": fc1_out_features
+            },
+            "fc2": {
+                "in_features": fc1_out_features,
+                "out_features": fc2_out_features
+            }
+        },
+        "decoder": {
+            "fc1": {
+                "in_features": fc2_out_features,
+                "out_features": fc1_out_features
+            },
+            "fc2": {
+                "in_features": fc1_out_features,
+                "out_features": FLATTEN_SIZE
+            },
+            "unflatten": {
+                "unflattened_size": (conv_2_out_channels, flatten_size[0], flatten_size[1])
+            },
+            "conv1": {
+                "in_channels": conv_2_out_channels,
+                "out_channels": conv_1_out_channels,
+                "kernel_size": conv_2_kernel_size,
+                "stride": conv_2_stride
+            },
+            "conv2": {
+                "in_channels": conv_1_out_channels,
+                "out_channels": conv_1_in_channels,
+                "kernel_size": conv_1_kernel_size,
+                "stride": conv_1_stride
+            }
+        }
+    }
+
     return params
