@@ -27,39 +27,35 @@ def extract_sequential(path_to_video, make_mirrors=False):
     :return list of sequences. Sequence is a list of frames. Frames are numpy arrays with shape (32, 4)
     """
     results = []
-    one_sequnce = []
-    mirror_sequnce = []
+    sequence = []
+    m_sequence = []
     cap = cv2.VideoCapture(path_to_video)
     length = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
     for _ in tqdm(range(length), desc=f"Mediapipe is extracting data from {path_to_video}..."):
         _, frame = cap.read()
-        result = mp_pose.process(frame)
 
+        result = mp_pose.process(frame)
         if result.pose_landmarks:
-            arr = from_landmarks_to_array(result.pose_landmarks.landmark)
-            one_sequnce.append(arr)
+            sequence.append(from_landmarks_to_array(result.pose_landmarks.landmark))
         else:
-            if len(one_sequnce) > 1:
-                results.append(one_sequnce)
-            one_sequnce = []
+            if len(sequence) > 1:
+                results.append(sequence)
+            sequence = []
 
         if make_mirrors:
-            mirror = frame[:,::-1]
-            result = mp_pose.process(mirror)
-
-            if result.pose_landmarks:
-                arr = from_landmarks_to_array(result.pose_landmarks.landmark)
-                mirror_sequnce.append(arr)
+            m_frame = frame[:, ::-1]
+            m_result = mp_pose.process(m_frame)
+            if m_result.pose_landmarks:
+                m_sequence.append(from_landmarks_to_array(m_result.pose_landmarks.landmark))
             else:
-                if len(mirror_sequnce) > 1:
-                    results.append(mirror_sequnce)
-                mirror_sequnce = []
+                if len(m_sequence) > 1:
+                    results.append(m_sequence)
+                m_sequence = []
 
-    if len(one_sequnce) > 1:
-        results.append(one_sequnce)
-    if len(mirror_sequnce) > 1 and make_mirrors:
-        results.append(mirror_sequnce)
-
+    if len(sequence) > 1:
+        results.append(sequence)
+    if len(m_sequence) > 1:
+        results.append(m_sequence)
     return results
 
 
@@ -96,7 +92,7 @@ def make_samples(sequences, sequence_length):
     """
     samples = []
     for sequence in sequences:
-        for i in range(len(sequence) - sequence_length):
+        for i in range(len(sequence) - sequence_length + 1):
             samples.append(sequence[i:i + sequence_length])
     return samples
 
