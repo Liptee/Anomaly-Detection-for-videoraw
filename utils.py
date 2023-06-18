@@ -72,7 +72,7 @@ def from_landmarks_to_array(landmarks):
     # so we take the coordinates of the nose
     # and subtract them from the coordinates of all other landmarks
 
-    nose_landmark = [landmarks[0].x, landmarks[0].y, landmarks[0].z]
+    nose_landmark = [landmarks[0].x-0.5, landmarks[0].y-0.2, landmarks[0].z+0.5]
     landmarks = landmarks[1:]
     for i, landmark in enumerate(landmarks):
         res[i] = [landmark.x, landmark.y, landmark.z, landmark.visibility]

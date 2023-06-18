@@ -4,7 +4,7 @@ import utils as tool
 
 class TestUtils(unittest.TestCase):
     def test_load_data(self):
-        self.assertEqual(len(tool.load_data(".", "py")), 2)
+        self.assertEqual(len(tool.load_data(".", "py")), 3)
         self.assertEqual(len(tool.load_data(".", "mp4")), 1)
 
     def test_extract_sequential(self):
