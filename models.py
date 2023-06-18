@@ -117,12 +117,17 @@ class FC_CNN_Encoder(nn.Module):
                              out_features=params["fc2"]["out_features"])
 
     def forward(self, x):
+        print(f"Input shape: {x.shape}")
         x = nn.functional.relu(self.conv1(x))
+        print(f"Conv1 shape: {x.shape}")
         x = nn.functional.relu(self.conv2(x))
+        print(f"Conv2 shape: {x.shape}")
         x = self.flatten(x)
+        print(f"Flatten shape: {x.shape}")
         x = nn.functional.relu(self.fc1(x))
+        print(f"FC1 shape: {x.shape}")
         x = nn.functional.relu(self.fc2(x))
-
+        print(f"FC2 shape: {x.shape}")
         return x
 
 

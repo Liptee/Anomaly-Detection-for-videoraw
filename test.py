@@ -2,7 +2,7 @@ import cv2
 import json
 import torch
 import mediapipe as mp
-from models import Transformer, CNN
+from models import Transformer, CNN, FC_CNN
 from utils import from_landmarks_to_array
 import matplotlib.pyplot as plt
 
@@ -15,7 +15,11 @@ def test(source,
          model_type="transformer",
          criterion=torch.nn.MSELoss(),
          transpose=(2, 0, 1)):
-    name = source.split(".")[0]
+    if source == 0:
+        name = "webcam"
+    else:
+        name = source.split(".")[0]
+
 
     with open(params_path) as f:
         params = json.load(f)
@@ -23,6 +27,8 @@ def test(source,
         model = Transformer(params)
     elif model_type == "cnn":
         model = CNN(params)
+    elif model_type == "fc_cnn":
+        model = FC_CNN(params)
     # load state dict with map_location=torch.device('cpu') if you trained on GPU and want to run on CPU
     model.load_state_dict(torch.load(model_path, map_location=torch.device('cpu')))
     # model.load_state_dict(torch.load(model_path))
@@ -56,8 +62,10 @@ def test(source,
             current_sequence = torch.tensor(current_sequence, dtype=torch.float32)
             if model_type == "transformer":
                 current_sequence = current_sequence.view(current_sequence.shape[0], current_sequence.shape[1] * current_sequence.shape[2])
-            elif model_type == "cnn":
+            elif model_type == "cnn" or model_type == "fc_cnn":
                 current_sequence = current_sequence.view(current_sequence.shape[transpose[0]], current_sequence.shape[transpose[1]], current_sequence.shape[transpose[2]])
+            # add dimension in current_sequence
+            current_sequence = current_sequence.unsqueeze(0)
             outputs = model(current_sequence)
             loss = criterion(outputs, current_sequence).item()
 
