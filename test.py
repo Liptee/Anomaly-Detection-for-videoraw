@@ -29,9 +29,8 @@ def test(source,
         model = CNN(params)
     elif model_type == "fc_cnn":
         model = FC_CNN(params)
-    # load state dict with map_location=torch.device('cpu') if you trained on GPU and want to run on CPU
     model.load_state_dict(torch.load(model_path, map_location=torch.device('cpu')))
-    # model.load_state_dict(torch.load(model_path))
+
 
     cap = cv2.VideoCapture(source)
     if not cap.isOpened():

@@ -182,7 +182,7 @@ class Trainer:
             val_data = np.array(self.val_data, dtype=np.float32)
             if self.model_type == "transformer":
                 val_data = val_data.reshape((val_data.shape[0], val_data.shape[1], val_data.shape[2] * val_data.shape[3]))
-            elif self.model_type == "cnn":
+            elif self.model_type == "cnn" or self.model_type == "fc_cnn":
                 val_data = val_data.transpose((0, 3, 1, 2))
             val_dataset = MyDataset(np.array(val_data))
             val_dataloader = DataLoader(val_dataset, batch_size=1)
@@ -191,7 +191,7 @@ class Trainer:
             anomaly_data = np.array(self.anomaly_data, dtype=np.float32)
             if self.model_type == "transformer":
                 anomaly_data = anomaly_data.reshape((anomaly_data.shape[0], anomaly_data.shape[1], anomaly_data.shape[2] * anomaly_data.shape[3]))
-            elif self.model_type == "cnn":
+            elif self.model_type == "cnn" or self.model_type == "fc_cnn":
                 anomaly_data = anomaly_data.transpose((0, 3, 1, 2))
             anomaly_dataset = MyDataset(np.array(anomaly_data))
             anomaly_dataloader = DataLoader(anomaly_dataset, batch_size=1)

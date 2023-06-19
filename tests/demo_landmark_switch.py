@@ -33,4 +33,4 @@ def test(source):
             break
     cap.release()
 
-test(0)
+test("cptn.mp4")
