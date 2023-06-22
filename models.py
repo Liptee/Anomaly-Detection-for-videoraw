@@ -105,11 +105,13 @@ class FC_CNN_Encoder(nn.Module):
         self.conv1 = nn.Conv2d(in_channels=params["conv1"]["in_channels"],
                                out_channels=params["conv1"]["out_channels"],
                                kernel_size=params["conv1"]["kernel_size"],
-                               stride=params["conv1"]["stride"])
+                               stride=params["conv1"]["stride"],
+                               padding=params["conv1"]["padding"])
         self.conv2 = nn.Conv2d(in_channels=params["conv2"]["in_channels"],
                                out_channels=params["conv2"]["out_channels"],
                                kernel_size=params["conv2"]["kernel_size"],
-                               stride=params["conv2"]["stride"])
+                               stride=params["conv2"]["stride"],
+                               padding=params["conv2"]["padding"])
         self.flatten = nn.Flatten()
         self.fc1 = nn.Linear(in_features=params["fc1"]["in_features"],
                              out_features=params["fc1"]["out_features"])
@@ -137,11 +139,15 @@ class FC_CNN_Decoder(nn.Module):
         self.conv1 = nn.ConvTranspose2d(in_channels=params["conv1"]["in_channels"],
                                         out_channels=params["conv1"]["out_channels"],
                                         kernel_size=params["conv1"]["kernel_size"],
-                                        stride=params["conv1"]["stride"])
+                                        stride=params["conv1"]["stride"],
+                                        padding=params["conv1"]["padding"],
+                                        output_padding=params["conv1"]["padding"])
         self.conv2 = nn.ConvTranspose2d(in_channels=params["conv2"]["in_channels"],
                                         out_channels=params["conv2"]["out_channels"],
                                         kernel_size=params["conv2"]["kernel_size"],
-                                        stride=params["conv2"]["stride"])
+                                        stride=params["conv2"]["stride"],
+                                        padding=params["conv2"]["padding"],
+                                        output_padding=params["conv2"]["padding"])
 
     def forward(self, x):
         x = nn.functional.relu(self.fc1(x))

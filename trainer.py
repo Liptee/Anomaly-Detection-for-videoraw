@@ -49,7 +49,7 @@ class Trainer:
         self.best_loss = 1000000.0
         self.best_score = 0.0
 
-    def add_data(self, path_to_dir, file_format: str = "mp4"):
+    def add_data(self, path_to_dir, file_format: str = "mp4", rewrite=False):
         """
         Adds data to the model
         :param path_to_dir: path to directory containing data
@@ -63,7 +63,7 @@ class Trainer:
 
         for path in files_list:
             name = path.split(".")[0]
-            if f"{name}.pkl" in metadata_list:
+            if f"{name}.pkl" in metadata_list and not rewrite:
                 print(f"Extracting data from {name}.pkl...")
                 with open(f"{name}.pkl", "rb") as f:
                     sequential = pickle.load(f)
@@ -77,7 +77,7 @@ class Trainer:
             self.data.extend(data)
             print(f"Size of train data: {np.array(self.data).shape}")
 
-    def add_validation_data(self, path_to_dir, file_format: str = "mp4"):
+    def add_validation_data(self, path_to_dir, file_format: str = "mp4", rewrite=False):
         """
         Adds validation data to the model
         :param path_to_dir: path to directory containing data
@@ -91,7 +91,7 @@ class Trainer:
 
         for path in files_list:
             name = path.split(".")[0]
-            if f"{name}.pkl" in metadata_list:
+            if f"{name}.pkl" in metadata_list and not rewrite:
                 print(f"Extracting data from {name}.pkl...")
                 with open(f"{name}.pkl", "rb") as f:
                     sequential = pickle.load(f)
@@ -105,7 +105,7 @@ class Trainer:
             self.val_data.extend(data)
             print(f"Size of validation data: {np.array(self.val_data).shape}")
 
-    def add_anomaly_data(self, path_to_dir, file_format: str = "mp4"):
+    def add_anomaly_data(self, path_to_dir, file_format: str = "mp4", rewrite=False):
         """
         Adds anomaly data to the model
         :param path_to_dir: path to directory containing data
@@ -119,7 +119,7 @@ class Trainer:
 
         for path in files_list:
             name = path.split(".")[0]
-            if f"{name}.pkl" in metadata_list:
+            if f"{name}.pkl" in metadata_list and not rewrite:
                 print(f"Extracting data from {name}.pkl...")
                 with open(f"{name}.pkl", "rb") as f:
                     sequential = pickle.load(f)

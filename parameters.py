@@ -1,11 +1,11 @@
-def init_transformer_params(num_heads=48,
+def init_transformer_params(num_heads=39,
                             hidden_size=512,
                             dropout=0.1,
                             num_layers=4):
-    if 96 % num_heads != 0:
-        raise ValueError("128 should be divisible by num_heads")
+    if 72 % num_heads != 0:
+        raise ValueError("72 should be divisible by num_heads")
     params = {
-        "input_size": 96,
+        "input_size": 72,
         "num_heads": num_heads,
         "hidden_size": hidden_size,
         "dropout": dropout,
@@ -69,13 +69,15 @@ def init_cnn_params(conv1_out_channels=3,
 
 
 def init_fc_cnn_params(conv_1_in_channels=3,
-                       conv_1_out_channels=6,
+                       conv_1_out_channels=18,
                        conv_1_kernel_size=3,
-                       conv_1_stride=1,
-                       conv_2_out_channels=8,
+                       conv_1_stride=2,
+                       conv_1_padding=1,
+                       conv_2_out_channels=36,
                        conv_2_kernel_size=3,
-                       conv_2_stride=1,
-                       flatten_size=(8, 28),
+                       conv_2_stride=2,
+                       conv_2_padding=1,
+                       flatten_size=(3, 6),
                        fc1_out_features=128,
                        fc2_out_features=64
                        ):
@@ -86,13 +88,15 @@ def init_fc_cnn_params(conv_1_in_channels=3,
                 "in_channels": conv_1_in_channels,
                 "out_channels": conv_1_out_channels,
                 "kernel_size": conv_1_kernel_size,
-                "stride": conv_1_stride
+                "stride": conv_1_stride,
+                "padding": conv_1_padding
             },
             "conv2": {
                 "in_channels": conv_1_out_channels,
                 "out_channels": conv_2_out_channels,
                 "kernel_size": conv_2_kernel_size,
-                "stride": conv_2_stride
+                "stride": conv_2_stride,
+                "padding": conv_2_padding
             },
             "fc1": {
                 "in_features": FLATTEN_SIZE,
@@ -119,13 +123,15 @@ def init_fc_cnn_params(conv_1_in_channels=3,
                 "in_channels": conv_2_out_channels,
                 "out_channels": conv_1_out_channels,
                 "kernel_size": conv_2_kernel_size,
-                "stride": conv_2_stride
+                "stride": conv_2_stride,
+                "padding": conv_2_padding
             },
             "conv2": {
                 "in_channels": conv_1_out_channels,
                 "out_channels": conv_1_in_channels,
                 "kernel_size": conv_1_kernel_size,
-                "stride": conv_1_stride
+                "stride": conv_1_stride,
+                "padding": conv_1_padding
             }
         }
     }

@@ -19,7 +19,7 @@ class TestModels(unittest.TestCase):
 
 
     def test_transformer_with_different_params(self):
-        for num_heads in tqdm([2, 4, 8, 16, 32, 64]):
+        for num_heads in tqdm([36, 24, 18, 12]):
             for hidden_size in range(100, 1000, 20):
                 for dropout in [0.0, 0.1, 0.5]:
                     for num_layers in range(2, 11, 3):

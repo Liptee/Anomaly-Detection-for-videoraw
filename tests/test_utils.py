@@ -13,12 +13,12 @@ class TestUtils(unittest.TestCase):
         for seq in sequences:
             self.assertTrue(len(seq) > 1)
             for frame in seq:
-                self.assertEqual(frame.shape, (32, 4))
+                self.assertEqual(frame.shape, (24, 3))
 
         for seq in sequences_m:
             self.assertTrue(len(seq) > 1)
             for frame in seq:
-                self.assertEqual(frame.shape, (32, 4))
+                self.assertEqual(frame.shape, (24, 3))
 
     def test_make_samples(self):
         test_seq = [[1, 2, 3, 4, 5, 6], [7, 8, 9, 10, 11]]
