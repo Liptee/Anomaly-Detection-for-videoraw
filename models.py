@@ -53,15 +53,18 @@ class CNN_Encoder(nn.Module):
         self.conv1 = nn.Conv2d(in_channels=params["conv1"]["in_channels"],
                                out_channels=params["conv1"]["out_channels"],
                                kernel_size=params["conv1"]["kernel_size"],
-                               stride=params["conv1"]["stride"])
+                               stride=params["conv1"]["stride"],
+                               padding=params["conv1"]["padding"])
         self.conv2 = nn.Conv2d(in_channels=params["conv2"]["in_channels"],
                                out_channels=params["conv2"]["out_channels"],
                                kernel_size=params["conv2"]["kernel_size"],
-                               stride=params["conv2"]["stride"])
+                               stride=params["conv2"]["stride"],
+                               padding=params["conv2"]["padding"])
         self.conv3 = nn.Conv2d(in_channels=params["conv3"]["in_channels"],
                                out_channels=params["conv3"]["out_channels"],
                                kernel_size=params["conv3"]["kernel_size"],
-                               stride=params["conv3"]["stride"])
+                               stride=params["conv3"]["stride"],
+                               padding=params["conv3"]["padding"])
 
     def forward(self, x):
         x = nn.functional.relu(self.conv1(x))  # Should I use ReLU here?
@@ -77,15 +80,21 @@ class CNN_Decoder(nn.Module):
         self.deconv1 = nn.ConvTranspose2d(in_channels=params["deconv1"]["in_channels"],
                                           out_channels=params["deconv1"]["out_channels"],
                                           kernel_size=params["deconv1"]["kernel_size"],
-                                          stride=params["deconv1"]["stride"])
+                                          stride=params["deconv1"]["stride"],
+                                          padding=params["deconv1"]["padding"],
+                                          output_padding=params["deconv1"]["padding"])
         self.deconv2 = nn.ConvTranspose2d(in_channels=params["deconv2"]["in_channels"],
                                           out_channels=params["deconv2"]["out_channels"],
                                           kernel_size=params["deconv2"]["kernel_size"],
-                                          stride=params["deconv2"]["stride"])
+                                          stride=params["deconv2"]["stride"],
+                                          padding=params["deconv2"]["padding"],
+                                          output_padding=params["deconv2"]["padding"])
         self.deconv3 = nn.ConvTranspose2d(in_channels=params["deconv3"]["in_channels"],
                                           out_channels=params["deconv3"]["out_channels"],
                                           kernel_size=params["deconv3"]["kernel_size"],
-                                          stride=params["deconv3"]["stride"])
+                                          stride=params["deconv3"]["stride"],
+                                          padding=params["deconv3"]["padding"],
+                                          output_padding=params["deconv3"]["padding"])
 
     def forward(self, x):
         x = nn.functional.relu(self.deconv1(x))
@@ -170,3 +179,19 @@ class FC_CNN(nn.Module):
         x = self.decoder(x)
 
         return x
+
+
+######################################
+############# RNN model ##############
+######################################
+class RNN(nn.Module):
+    def __init__(self, params):
+        super(RNN, self).__init__()
+
+        self.encoder = nn.RNN(params["input_size"], params["hidden_size"], batch_first=True)
+        self.decoder = nn.RNN(params["hidden_size"], params["output_size"], batch_first=True)
+
+    def forward(self, x):
+        encoded_output, hidden_state = self.encoder(x)
+        decoded_output, _ = self.decoder(encoded_output)
+        return decoded_output
