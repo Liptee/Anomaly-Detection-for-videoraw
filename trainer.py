@@ -1,4 +1,4 @@
-from models import Transformer, CNN, FC_CNN
+from models import Transformer, CNN, FC_CNN, RNN
 from sklearn.model_selection import train_test_split
 import torch
 from torch import nn, optim
@@ -12,7 +12,7 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 class Trainer:
     def __init__(self,
                  params: dict,
-                 model: str = "transformer",
+                 model = "transformer",
                  criterion=nn.MSELoss(),
                  learning_rate=0.001,
                  optimizer=optim.Adam,
@@ -21,14 +21,17 @@ class Trainer:
                  num_epochs=10,
                  sequence_length=12):
 
-        if model == "transformer":
-            self.model = Transformer(params)
-        elif model == "cnn":
-            self.model = CNN(params)
-        elif model == "fc_cnn":
-            self.model = FC_CNN(params)
+        model_classes = {
+            "transformer": Transformer,
+            "cnn": CNN,
+            "fc_cnn": FC_CNN,
+            "rnn": RNN
+        }
+        if model in model_classes:
+            self.model = model_classes[model](params)
         else:
-            raise ValueError("model should be either transformer or cnn")
+            raise ValueError(f"Model {model} not found")
+
         params["sequence_length"] = sequence_length
         self.model_type = model
         self.params = params
@@ -170,7 +173,7 @@ class Trainer:
             raise ValueError("No data added to the model")
 
         data = np.array(self.data, dtype=np.float32)
-        if self.model_type == "transformer":
+        if self.model_type == "transformer" or self.model_type == "rnn":
             data = data.reshape((data.shape[0], data.shape[1], data.shape[2] * data.shape[3]))
         elif self.model_type == "cnn" or self.model_type == "fc_cnn":
             data = data.transpose(transpose)
@@ -180,7 +183,7 @@ class Trainer:
 
         if self.val_data:
             val_data = np.array(self.val_data, dtype=np.float32)
-            if self.model_type == "transformer":
+            if self.model_type == "transformer" or self.model_type == "rnn":
                 val_data = val_data.reshape((val_data.shape[0], val_data.shape[1], val_data.shape[2] * val_data.shape[3]))
             elif self.model_type == "cnn" or self.model_type == "fc_cnn":
                 val_data = val_data.transpose((0, 3, 1, 2))
@@ -189,7 +192,7 @@ class Trainer:
 
         if self.anomaly_data:
             anomaly_data = np.array(self.anomaly_data, dtype=np.float32)
-            if self.model_type == "transformer":
+            if self.model_type == "transformer" or self.model_type == "rnn":
                 anomaly_data = anomaly_data.reshape((anomaly_data.shape[0], anomaly_data.shape[1], anomaly_data.shape[2] * anomaly_data.shape[3]))
             elif self.model_type == "cnn" or self.model_type == "fc_cnn":
                 anomaly_data = anomaly_data.transpose((0, 3, 1, 2))
@@ -261,10 +264,18 @@ class Trainer:
                         json.dump(self.params, f)
 
             else:
-                mean_relation = (anomaly_mean - anomaly_std )/(self.params["mean"] + self.params["std"])
-                median_relation = (anomaly_median - anomaly_std )/(self.params["median"] + self.params["std"])
+                anomaly_mean_diff = anomaly_mean - anomaly_std
+                #if anomaly_mean_diff < 0: anomaly_mean_diff = 0
+                anomaly_median_diff = anomaly_median - anomaly_std
+                #if anomaly_median_diff < 0: anomaly_median_diff = 0
+                mean_relation = anomaly_mean_diff/(self.params["mean"] + self.params["std"])
+                median_relation = (anomaly_median_diff)/(self.params["median"] + self.params["std"])
                 score = mean_relation + median_relation
                 print(f"Diff score: {score:.4f}")
+
+                if score < -0.2:
+                    break
+
                 if score > self.best_score:
                     self.best_score = score
                     self.best_params = self.params

@@ -1,4 +1,4 @@
-def init_transformer_params(num_heads=39,
+def init_transformer_params(num_heads=36,
                             hidden_size=512,
                             dropout=0.1,
                             num_layers=4):
@@ -13,6 +13,14 @@ def init_transformer_params(num_heads=39,
     }
     return params
 
+def init_rnn_params(input_size=72,
+                    hidden_size=512):
+    params = {
+        "input_size": input_size,
+        "hidden_size": hidden_size,
+    }
+    return params
+
 
 def init_cnn_params(conv1_out_channels=3,
                     conv2_out_channels=2,
@@ -22,26 +30,32 @@ def init_cnn_params(conv1_out_channels=3,
                     conv3_kernel_size=3,
                     conv_1_stride=1,
                     conv_2_stride=1,
-                    conv_3_stride=1):
+                    conv_3_stride=1,
+                    conv_1_padding=0,
+                    conv_2_padding=0,
+                    conv_3_padding=0):
     params = {
         "encoder": {
             "conv1": {
                 "in_channels": 3,
                 "out_channels": conv1_out_channels,
                 "kernel_size": conv1_kernel_size,
-                "stride": conv_1_stride
+                "stride": conv_1_stride,
+                "padding": conv_1_padding
             },
             "conv2": {
                 "in_channels": conv1_out_channels,
                 "out_channels": conv2_out_channels,
                 "kernel_size": conv2_kernel_size,
-                "stride": conv_2_stride
+                "stride": conv_2_stride,
+                "padding": conv_2_padding
             },
             "conv3": {
                 "in_channels": conv2_out_channels,
                 "out_channels": conv3_out_channels,
                 "kernel_size": conv3_kernel_size,
-                "stride": conv_3_stride
+                "stride": conv_3_stride,
+                "padding": conv_3_padding
             },
         },
         "decoder": {
@@ -49,19 +63,22 @@ def init_cnn_params(conv1_out_channels=3,
                 "in_channels": conv3_out_channels,
                 "out_channels": conv2_out_channels,
                 "kernel_size": conv3_kernel_size,
-                "stride": conv_3_stride
+                "stride": conv_3_stride,
+                "padding": conv_3_padding
             },
             "deconv2": {
                 "in_channels": conv2_out_channels,
                 "out_channels": conv1_out_channels,
                 "kernel_size": conv2_kernel_size,
-                "stride": conv_2_stride
+                "stride": conv_2_stride,
+                "padding": conv_2_padding
             },
             "deconv3": {
                 "in_channels": conv1_out_channels,
                 "out_channels": 3,
                 "kernel_size": conv1_kernel_size,
-                "stride": conv_1_stride
+                "stride": conv_1_stride,
+                "padding": conv_1_padding
             },
         },
     }
@@ -71,13 +88,13 @@ def init_cnn_params(conv1_out_channels=3,
 def init_fc_cnn_params(conv_1_in_channels=3,
                        conv_1_out_channels=18,
                        conv_1_kernel_size=3,
-                       conv_1_stride=2,
-                       conv_1_padding=1,
+                       conv_1_stride=1,
+                       conv_1_padding=0,
                        conv_2_out_channels=36,
                        conv_2_kernel_size=3,
-                       conv_2_stride=2,
-                       conv_2_padding=1,
-                       flatten_size=(3, 6),
+                       conv_2_stride=1,
+                       conv_2_padding=0,
+                       flatten_size=(8, 20), # (sequnce_length: 12, num_au: 24)
                        fc1_out_features=128,
                        fc2_out_features=64
                        ):

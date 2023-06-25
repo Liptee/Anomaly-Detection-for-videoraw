@@ -2,7 +2,7 @@ import cv2
 import json
 import torch
 import mediapipe as mp
-from models import Transformer, CNN, FC_CNN
+from models import Transformer, CNN, FC_CNN, RNN
 from utils import from_landmarks_to_array
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
@@ -25,13 +25,17 @@ def demo(source,
 
     with open(params_path) as f:
         params = json.load(f)
-    if model_type == "transformer":
-        model = Transformer(params)
-    elif model_type == "cnn":
-        model = CNN(params)
-    elif model_type == "fc_cnn":
-        model = FC_CNN(params)
 
+    model_classes = {
+        "transformer": Transformer,
+        "cnn": CNN,
+        "fc_cnn": FC_CNN,
+        "rnn": RNN
+    }
+
+    if model_type not in model_classes:
+        raise ValueError("Model type must be one of: {}".format(model_classes.keys()))
+    model = model_classes[model_type](params)
     model.load_state_dict(torch.load(model_path, map_location=torch.device('cpu')))
 
     cap = cv2.VideoCapture(source)
@@ -39,7 +43,8 @@ def demo(source,
         print("Error opening video stream or file")
         exit()
 
-    threshold = params["mean"]
+    mean = params["mean"]
+    threshold = 0.00013
     maximun = params["max"]
 
     ret, frame = cap.read()
@@ -71,10 +76,10 @@ def demo(source,
             results.pose_landmarks.landmark[0].x = 0.5
             results.pose_landmarks.landmark[0].x = 0.2
             results.pose_landmarks.landmark[0].x = -0.5
-            for i in range(1, 33):
-                results.pose_landmarks.landmark[i].x = arr[i - 1][0]
-                results.pose_landmarks.landmark[i].y = arr[i - 1][1]
-                results.pose_landmarks.landmark[i].z = arr[i - 1][2]
+            for i in range(9, 33):
+                results.pose_landmarks.landmark[i].x = arr[i - 9][0]
+                results.pose_landmarks.landmark[i].y = arr[i - 9][1]
+                results.pose_landmarks.landmark[i].z = arr[i - 9][2]
                 results.pose_landmarks.landmark[i].visibility = 1
             mp_drawing.draw_landmarks(
                 original_landmarks_frame, results.pose_landmarks, mp.solutions.pose.POSE_CONNECTIONS)
@@ -88,7 +93,7 @@ def demo(source,
             current_sequence = sequence[-params["sequence_length"]:]
             current_sequence = np.array(current_sequence)
             current_sequence = torch.tensor(current_sequence, dtype=torch.float32)
-            if model_type == "transformer":
+            if model_type == "transformer" or model_type == "rnn":
                 current_sequence = current_sequence.view(current_sequence.shape[0],
                                                          current_sequence.shape[1] * current_sequence.shape[2])
             elif model_type == "cnn" or model_type == "fc_cnn":
@@ -102,19 +107,26 @@ def demo(source,
             loss = criterion(outputs, current_sequence).item()
             losses.append(loss)
 
-            if model_type == "transformer":
+            if model_type == "transformer" or model_type == "rnn":
                 last_frame = outputs[0][-1].detach().numpy()
-                last_frame = last_frame.reshape(32, 3)
+                last_frame = last_frame.reshape(24, 3)
             if model_type == "cnn" or model_type == "fc_cnn":
                 last_frame = outputs[0].detach().numpy()
                 last_frame = last_frame.transpose(1, 2, 0)
                 last_frame = last_frame[-1]
 
-            for i in range(1, 33):
-                results.pose_landmarks.landmark[i].x = last_frame[i - 1][0]
-                results.pose_landmarks.landmark[i].y = last_frame[i - 1][1]
-                results.pose_landmarks.landmark[i].z = last_frame[i - 1][2]
-                results.pose_landmarks.landmark[i].visibility = 1
+            for i in range(33):
+                # print(f"x{i} before: {results.pose_landmarks.landmark[i].x}")
+                # print(f"y{i} before: {results.pose_landmarks.landmark[i].y}")
+                # print(f"z{i} before: {results.pose_landmarks.landmark[i].z}")
+                if i > 9:
+                    results.pose_landmarks.landmark[i].x = last_frame[i-9][0]
+                    results.pose_landmarks.landmark[i].y = last_frame[i-9][1]
+                    results.pose_landmarks.landmark[i].z = last_frame[i-9][2]
+                # print(f"x{i} after: {results.pose_landmarks.landmark[i].x}")
+                # print(f"y{i} after: {results.pose_landmarks.landmark[i].y}")
+                # print(f"z{i} after: {results.pose_landmarks.landmark[i].z}")
+                # print("-"*50)
             mp_drawing.draw_landmarks(
                 predicted_landmarks_frame, results.pose_landmarks, mp.solutions.pose.POSE_CONNECTIONS)
 
@@ -126,7 +138,7 @@ def demo(source,
         fig, ax = plt.subplots()
         plt.plot(losses)
         plt.axhline(y=threshold, color='orange', linestyle='-')
-        plt.axhline(y=maximun, color='red', linestyle='-')
+        plt.axhline(y=mean, color='red', linestyle='-')
         plt.xlabel("Frame")
         plt.ylabel("Loss")
         plt.title("Losses")
@@ -149,10 +161,10 @@ def demo(source,
     cap.release()
 
 
-demo("data/final_test_anomaly/obj_1/RGB/normal/walks_on_the_spot.mp4",
-     "models/model_32_16_score_1.3422.pt",
-     "models/model_32_16_score_1.3422.json",
-     model_type="fc_cnn",
+demo(0,
+     "models/model_256_score_-0.0200.pt",
+     "models/model_256_score_-0.0200.json",
+     model_type="rnn",
      criterion=torch.nn.MSELoss(),
      transpose=(2, 0, 1),
-     scale=2)
+     scale=1.0)

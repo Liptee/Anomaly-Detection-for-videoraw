@@ -189,7 +189,7 @@ class RNN(nn.Module):
         super(RNN, self).__init__()
 
         self.encoder = nn.RNN(params["input_size"], params["hidden_size"], batch_first=True)
-        self.decoder = nn.RNN(params["hidden_size"], params["output_size"], batch_first=True)
+        self.decoder = nn.RNN(params["hidden_size"], params["input_size"], batch_first=True)
 
     def forward(self, x):
         encoded_output, hidden_state = self.encoder(x)
