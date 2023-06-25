@@ -195,3 +195,18 @@ class RNN(nn.Module):
         encoded_output, hidden_state = self.encoder(x)
         decoded_output, _ = self.decoder(encoded_output)
         return decoded_output
+
+######################################
+############# LSTM model #############
+######################################
+class LSTM(nn.Module):
+    def __init__(self, params):
+        super(LSTM, self).__init__()
+
+        self.encoder = nn.LSTM(params["input_size"], params["hidden_size"], batch_first=True)
+        self.decoder = nn.LSTM(params["hidden_size"], params["input_size"], batch_first=True)
+
+    def forward(self, x):
+        encoded_output, hidden_state = self.encoder(x)
+        decoded_output, _ = self.decoder(encoded_output)
+        return decoded_output

@@ -2,7 +2,7 @@ import cv2
 import json
 import torch
 import mediapipe as mp
-from models import Transformer, CNN, FC_CNN, RNN
+from models import Transformer, CNN, FC_CNN, RNN, LSTM
 from utils import from_landmarks_to_array
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
@@ -18,10 +18,6 @@ def demo(source,
          criterion=torch.nn.MSELoss(),
          transpose=(2, 0, 1),
          scale=2.0):
-    if source == 0:
-        name = "webcam"
-    else:
-        name = source.split(".")[0]
 
     with open(params_path) as f:
         params = json.load(f)
@@ -30,7 +26,8 @@ def demo(source,
         "transformer": Transformer,
         "cnn": CNN,
         "fc_cnn": FC_CNN,
-        "rnn": RNN
+        "rnn": RNN,
+        "lstm": LSTM
     }
 
     if model_type not in model_classes:
@@ -45,7 +42,6 @@ def demo(source,
 
     mean = params["mean"]
     threshold = 0.00013
-    maximun = params["max"]
 
     ret, frame = cap.read()
     if not ret:
@@ -93,7 +89,7 @@ def demo(source,
             current_sequence = sequence[-params["sequence_length"]:]
             current_sequence = np.array(current_sequence)
             current_sequence = torch.tensor(current_sequence, dtype=torch.float32)
-            if model_type == "transformer" or model_type == "rnn":
+            if model_type == "transformer" or model_type == "rnn" or model_type == "lstm":
                 current_sequence = current_sequence.view(current_sequence.shape[0],
                                                          current_sequence.shape[1] * current_sequence.shape[2])
             elif model_type == "cnn" or model_type == "fc_cnn":
@@ -107,7 +103,7 @@ def demo(source,
             loss = criterion(outputs, current_sequence).item()
             losses.append(loss)
 
-            if model_type == "transformer" or model_type == "rnn":
+            if model_type == "transformer" or model_type == "rnn" or model_type == "lstm":
                 last_frame = outputs[0][-1].detach().numpy()
                 last_frame = last_frame.reshape(24, 3)
             if model_type == "cnn" or model_type == "fc_cnn":
@@ -161,10 +157,15 @@ def demo(source,
     cap.release()
 
 
-demo(0,
-     "models/model_256_score_-0.0200.pt",
-     "models/model_256_score_-0.0200.json",
-     model_type="rnn",
-     criterion=torch.nn.MSELoss(),
-     transpose=(2, 0, 1),
-     scale=1.0)
+for_demo = ["data/final_test_anomaly/obj_1/IR/normal/goes_to_left.mp4",
+            "data/final_test_anomaly/obj_1/IR/anomaly/armed_penetration.mp4",
+            "data/final_test_anomaly/obj_1/IR/anomaly/hostage_taking2.mp4",
+            "data/final_test_anomaly/obj_1/IR/normal/walks_on_the_spot.mp4"]
+for video in for_demo:
+    demo(video,
+         "models/model_256_score_-0.0122.pt",
+         "models/model_256_score_-0.0122.json",
+         model_type="lstm",
+         criterion=torch.nn.MSELoss(),
+         transpose=(2, 0, 1),
+         scale=2.5)

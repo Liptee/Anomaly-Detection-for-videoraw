@@ -1,4 +1,4 @@
-from models import Transformer, CNN, FC_CNN, RNN
+from models import Transformer, CNN, FC_CNN, RNN, LSTM
 from sklearn.model_selection import train_test_split
 import torch
 from torch import nn, optim
@@ -25,7 +25,8 @@ class Trainer:
             "transformer": Transformer,
             "cnn": CNN,
             "fc_cnn": FC_CNN,
-            "rnn": RNN
+            "rnn": RNN,
+            "lstm": LSTM
         }
         if model in model_classes:
             self.model = model_classes[model](params)
@@ -50,7 +51,7 @@ class Trainer:
         self.best_model = None
         self.best_params = None
         self.best_loss = 1000000.0
-        self.best_score = 0.0
+        self.best_score = -100000.0
 
     def add_data(self, path_to_dir, file_format: str = "mp4", rewrite=False):
         """
@@ -173,7 +174,7 @@ class Trainer:
             raise ValueError("No data added to the model")
 
         data = np.array(self.data, dtype=np.float32)
-        if self.model_type == "transformer" or self.model_type == "rnn":
+        if self.model_type == "transformer" or self.model_type == "rnn" or self.model_type == "lstm":
             data = data.reshape((data.shape[0], data.shape[1], data.shape[2] * data.shape[3]))
         elif self.model_type == "cnn" or self.model_type == "fc_cnn":
             data = data.transpose(transpose)
@@ -183,7 +184,7 @@ class Trainer:
 
         if self.val_data:
             val_data = np.array(self.val_data, dtype=np.float32)
-            if self.model_type == "transformer" or self.model_type == "rnn":
+            if self.model_type == "transformer" or self.model_type == "rnn" or self.model_type == "lstm":
                 val_data = val_data.reshape((val_data.shape[0], val_data.shape[1], val_data.shape[2] * val_data.shape[3]))
             elif self.model_type == "cnn" or self.model_type == "fc_cnn":
                 val_data = val_data.transpose((0, 3, 1, 2))
@@ -192,7 +193,7 @@ class Trainer:
 
         if self.anomaly_data:
             anomaly_data = np.array(self.anomaly_data, dtype=np.float32)
-            if self.model_type == "transformer" or self.model_type == "rnn":
+            if self.model_type == "transformer" or self.model_type == "rnn" or self.model_type == "lstm":
                 anomaly_data = anomaly_data.reshape((anomaly_data.shape[0], anomaly_data.shape[1], anomaly_data.shape[2] * anomaly_data.shape[3]))
             elif self.model_type == "cnn" or self.model_type == "fc_cnn":
                 anomaly_data = anomaly_data.transpose((0, 3, 1, 2))
@@ -264,17 +265,15 @@ class Trainer:
                         json.dump(self.params, f)
 
             else:
-                anomaly_mean_diff = anomaly_mean - anomaly_std
-                #if anomaly_mean_diff < 0: anomaly_mean_diff = 0
-                anomaly_median_diff = anomaly_median - anomaly_std
-                #if anomaly_median_diff < 0: anomaly_median_diff = 0
-                mean_relation = anomaly_mean_diff/(self.params["mean"] + self.params["std"])
-                median_relation = (anomaly_median_diff)/(self.params["median"] + self.params["std"])
-                score = mean_relation + median_relation
-                print(f"Diff score: {score:.4f}")
+                # anomaly_mean_diff = anomaly_mean - anomaly_std
+                # anomaly_median_diff = anomaly_median - anomaly_std
+                # mean_relation = anomaly_mean_diff/(self.params["mean"] + self.params["std"])
+                # median_relation = (anomaly_median_diff)/(self.params["median"] + self.params["std"])
+                # score = mean_relation + median_relation
 
-                if score < -0.2:
-                    break
+                score = np.sum(sorted(anomaly_losses)[:100]) - np.sum(sorted(val_losses[-100:]))
+
+                print(f"Diff score: {score:.4f}")
 
                 if score > self.best_score:
                     self.best_score = score

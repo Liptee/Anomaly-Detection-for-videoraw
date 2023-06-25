@@ -154,3 +154,11 @@ def init_fc_cnn_params(conv_1_in_channels=3,
     }
 
     return params
+
+def init_lstm_params(input_size=72,
+                     hidden_size=512):
+    params = {
+        "input_size": input_size,
+        "hidden_size": hidden_size
+    }
+    return params
