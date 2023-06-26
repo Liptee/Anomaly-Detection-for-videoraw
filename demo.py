@@ -2,7 +2,7 @@ import cv2
 import json
 import torch
 import mediapipe as mp
-from models import Transformer, CNN, FC_CNN, RNN, LSTM
+from models import Transformer, RNN, LSTM
 from utils import from_landmarks_to_array
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
@@ -16,7 +16,6 @@ def demo(source,
          params_path: str,
          model_type="transformer",
          criterion=torch.nn.MSELoss(),
-         transpose=(2, 0, 1),
          scale=2.0):
 
     with open(params_path) as f:
@@ -24,8 +23,6 @@ def demo(source,
 
     model_classes = {
         "transformer": Transformer,
-        "cnn": CNN,
-        "fc_cnn": FC_CNN,
         "rnn": RNN,
         "lstm": LSTM
     }
@@ -41,7 +38,7 @@ def demo(source,
         exit()
 
     mean = params["mean"]
-    threshold = 0.00013
+    threshold = params["threshold"]
 
     ret, frame = cap.read()
     if not ret:
@@ -85,17 +82,11 @@ def demo(source,
             sequence = []
 
         if len(sequence) >= params["sequence_length"]:
-            state = "Normal"
             current_sequence = sequence[-params["sequence_length"]:]
             current_sequence = np.array(current_sequence)
             current_sequence = torch.tensor(current_sequence, dtype=torch.float32)
-            if model_type == "transformer" or model_type == "rnn" or model_type == "lstm":
-                current_sequence = current_sequence.view(current_sequence.shape[0],
-                                                         current_sequence.shape[1] * current_sequence.shape[2])
-            elif model_type == "cnn" or model_type == "fc_cnn":
-                current_sequence = current_sequence.view(current_sequence.shape[transpose[0]],
-                                                         current_sequence.shape[transpose[1]],
-                                                         current_sequence.shape[transpose[2]])
+            current_sequence = current_sequence.view(current_sequence.shape[0],
+                                                     current_sequence.shape[1] * current_sequence.shape[2])
 
             # add dimension in current_sequence
             current_sequence = current_sequence.unsqueeze(0)
@@ -103,13 +94,8 @@ def demo(source,
             loss = criterion(outputs, current_sequence).item()
             losses.append(loss)
 
-            if model_type == "transformer" or model_type == "rnn" or model_type == "lstm":
-                last_frame = outputs[0][-1].detach().numpy()
-                last_frame = last_frame.reshape(24, 3)
-            if model_type == "cnn" or model_type == "fc_cnn":
-                last_frame = outputs[0].detach().numpy()
-                last_frame = last_frame.transpose(1, 2, 0)
-                last_frame = last_frame[-1]
+            last_frame = outputs[0][-1].detach().numpy()
+            last_frame = last_frame.reshape(24, 3)
 
             for i in range(33):
                 # print(f"x{i} before: {results.pose_landmarks.landmark[i].x}")
@@ -157,15 +143,16 @@ def demo(source,
     cap.release()
 
 
-for_demo = ["data/final_test_anomaly/obj_1/IR/normal/goes_to_left.mp4",
-            "data/final_test_anomaly/obj_1/IR/anomaly/armed_penetration.mp4",
-            "data/final_test_anomaly/obj_1/IR/anomaly/hostage_taking2.mp4",
-            "data/final_test_anomaly/obj_1/IR/normal/walks_on_the_spot.mp4"]
-for video in for_demo:
-    demo(video,
-         "models/model_256_score_-0.0122.pt",
-         "models/model_256_score_-0.0122.json",
-         model_type="lstm",
-         criterion=torch.nn.MSELoss(),
-         transpose=(2, 0, 1),
-         scale=2.5)
+if __name__ == "__main__":
+    for_demo = ["data/final_test_anomaly/obj_1/IR/normal/goes_to_left.mp4",
+                "data/final_test_anomaly/obj_1/IR/anomaly/armed_penetration.mp4",
+                "data/final_test_anomaly/obj_1/IR/anomaly/hostage_taking2.mp4",
+                "data/final_test_anomaly/obj_1/IR/normal/walks_on_the_spot.mp4"]
+    for video in for_demo:
+        demo(video,
+             "models/model_64_16_score_0.4673.pt",
+             "models/model_64_16_score_0.4673.json",
+             model_type="lstm",
+             criterion=torch.nn.MSELoss(),
+             transpose=(2, 0, 1),
+             scale=2.5)
