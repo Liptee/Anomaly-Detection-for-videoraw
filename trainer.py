@@ -1,4 +1,4 @@
-from models import Transformer, CNN, FC_CNN
+from models import Transformer, RNN, LSTM
 from sklearn.model_selection import train_test_split
 import torch
 from torch import nn, optim
@@ -8,11 +8,10 @@ import pickle
 import numpy as np
 import json
 
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 class Trainer:
     def __init__(self,
                  params: dict,
-                 model: str = "transformer",
+                 model="transformer",
                  criterion=nn.MSELoss(),
                  learning_rate=0.001,
                  optimizer=optim.Adam,
@@ -21,14 +20,16 @@ class Trainer:
                  num_epochs=10,
                  sequence_length=12):
 
-        if model == "transformer":
-            self.model = Transformer(params)
-        elif model == "cnn":
-            self.model = CNN(params)
-        elif model == "fc_cnn":
-            self.model = FC_CNN(params)
+        model_classes = {
+            "transformer": Transformer,
+            "rnn": RNN,
+            "lstm": LSTM
+        }
+        if model in model_classes:
+            self.model = model_classes[model](params)
         else:
-            raise ValueError("model should be either transformer or cnn")
+            raise ValueError(f"Model {model} not found")
+
         params["sequence_length"] = sequence_length
         self.model_type = model
         self.params = params
@@ -47,15 +48,9 @@ class Trainer:
         self.best_model = None
         self.best_params = None
         self.best_loss = 1000000.0
-        self.best_score = 0.0
+        self.best_score = -100000
 
-    def add_data(self, path_to_dir, file_format: str = "mp4"):
-        """
-        Adds data to the model
-        :param path_to_dir: path to directory containing data
-        :param file_format: file format of data
-        :return: None
-        """
+    def add_data(self, path_to_dir, file_format: str = "mp4", rewrite=False):
         if self.data is None:
             self.data = []
         files_list = load_data(path_to_dir, file_format)
@@ -63,7 +58,7 @@ class Trainer:
 
         for path in files_list:
             name = path.split(".")[0]
-            if f"{name}.pkl" in metadata_list:
+            if f"{name}.pkl" in metadata_list and not rewrite:
                 print(f"Extracting data from {name}.pkl...")
                 with open(f"{name}.pkl", "rb") as f:
                     sequential = pickle.load(f)
@@ -77,13 +72,7 @@ class Trainer:
             self.data.extend(data)
             print(f"Size of train data: {np.array(self.data).shape}")
 
-    def add_validation_data(self, path_to_dir, file_format: str = "mp4"):
-        """
-        Adds validation data to the model
-        :param path_to_dir: path to directory containing data
-        :param file_format: file format of data
-        :return: None
-        """
+    def add_validation_data(self, path_to_dir, file_format: str = "mp4", rewrite=False):
         if self.val_data is None:
             self.val_data = []
         files_list = load_data(path_to_dir, file_format)
@@ -91,7 +80,7 @@ class Trainer:
 
         for path in files_list:
             name = path.split(".")[0]
-            if f"{name}.pkl" in metadata_list:
+            if f"{name}.pkl" in metadata_list and not rewrite:
                 print(f"Extracting data from {name}.pkl...")
                 with open(f"{name}.pkl", "rb") as f:
                     sequential = pickle.load(f)
@@ -105,13 +94,7 @@ class Trainer:
             self.val_data.extend(data)
             print(f"Size of validation data: {np.array(self.val_data).shape}")
 
-    def add_anomaly_data(self, path_to_dir, file_format: str = "mp4"):
-        """
-        Adds anomaly data to the model
-        :param path_to_dir: path to directory containing data
-        :param file_format: file format of data
-        :return: None
-        """
+    def add_anomaly_data(self, path_to_dir, file_format: str = "mp4", rewrite=False):
         if self.anomaly_data is None:
             self.anomaly_data = []
         files_list = load_data(path_to_dir, file_format)
@@ -119,7 +102,7 @@ class Trainer:
 
         for path in files_list:
             name = path.split(".")[0]
-            if f"{name}.pkl" in metadata_list:
+            if f"{name}.pkl" in metadata_list and not rewrite:
                 print(f"Extracting data from {name}.pkl...")
                 with open(f"{name}.pkl", "rb") as f:
                     sequential = pickle.load(f)
@@ -133,12 +116,7 @@ class Trainer:
             self.anomaly_data.extend(data)
             print(f"Size of anomaly data: {np.array(self.anomaly_data).shape}")
 
-    def create_validatation_set(self, test_size=0.2):
-        """
-        Splits the data into train and validation sets
-        :param test_size: size of validation set
-        :return: None
-        """
+    def create_validation_set(self, test_size=0.2):
         self.data, val_data = train_test_split(self.data, test_size=test_size)
         if self.val_data is None:
             self.val_data = val_data
@@ -154,6 +132,7 @@ class Trainer:
     def save_best_model(self):
         if self.best_model is None:
             raise ValueError("No best model to save")
+
         if self.anomaly_data:
             torch.save(self.best_model.state_dict(), f"{self.output_model_name}_score_{self.best_score:.4f}.pt")
             with open(f"{self.output_model_name}_score_{self.best_score:.4f}.json", "w") as f:
@@ -163,44 +142,33 @@ class Trainer:
             with open(f"{self.output_model_name}_loss_{self.best_loss:.4f}.json", "w") as f:
                 json.dump(self.best_params, f)
 
-    def train(self, save_model: bool = False, transpose=(0, 3, 1, 2)):
-        if transpose[0] != 0:
-            raise ValueError("First dimension must be batch size in transpose. Change transpose parameter")
+    def train(self, save_model: bool = False):
         if self.data is None:
             raise ValueError("No data added to the model")
 
         data = np.array(self.data, dtype=np.float32)
-        if self.model_type == "transformer":
-            data = data.reshape((data.shape[0], data.shape[1], data.shape[2] * data.shape[3]))
-        elif self.model_type == "cnn" or self.model_type == "fc_cnn":
-            data = data.transpose(transpose)
+        data = data.reshape((data.shape[0], data.shape[1], data.shape[2] * data.shape[3]))
 
         dataset = MyDataset(data)
         dataloader = DataLoader(dataset, batch_size=self.batch_size, shuffle=True)
 
         if self.val_data:
             val_data = np.array(self.val_data, dtype=np.float32)
-            if self.model_type == "transformer":
-                val_data = val_data.reshape((val_data.shape[0], val_data.shape[1], val_data.shape[2] * val_data.shape[3]))
-            elif self.model_type == "cnn":
-                val_data = val_data.transpose((0, 3, 1, 2))
+            val_data = val_data.reshape((val_data.shape[0], val_data.shape[1], val_data.shape[2] * val_data.shape[3]))
             val_dataset = MyDataset(np.array(val_data))
             val_dataloader = DataLoader(val_dataset, batch_size=1)
 
         if self.anomaly_data:
             anomaly_data = np.array(self.anomaly_data, dtype=np.float32)
-            if self.model_type == "transformer":
-                anomaly_data = anomaly_data.reshape((anomaly_data.shape[0], anomaly_data.shape[1], anomaly_data.shape[2] * anomaly_data.shape[3]))
-            elif self.model_type == "cnn":
-                anomaly_data = anomaly_data.transpose((0, 3, 1, 2))
+            anomaly_data = anomaly_data.reshape(
+                (anomaly_data.shape[0], anomaly_data.shape[1], anomaly_data.shape[2] * anomaly_data.shape[3]))
             anomaly_dataset = MyDataset(np.array(anomaly_data))
             anomaly_dataloader = DataLoader(anomaly_dataset, batch_size=1)
 
-        train_losses = []
-        val_losses = []
-        anomaly_losses = []
-
         for epoch in range(self.num_epochs):
+            train_losses = []
+            val_losses = []
+            anomaly_losses = []
             print(f"Epoch {epoch + 1}/{self.num_epochs}")
             self.model.train()
             for batch in dataloader:
@@ -233,7 +201,8 @@ class Trainer:
                         output = self.model(batch)
                         loss = self.criterion(output, batch)
                         anomaly_losses.append(loss.item())
-                anomaly_mean, anomaly_median, anomaly_std, anomaly_min, anomaly_max = return_statisctic_for_list(anomaly_losses)
+                anomaly_mean, anomaly_median, anomaly_std, anomaly_min, anomaly_max = return_statisctic_for_list(
+                    anomaly_losses)
                 print(f"Anomaly loss: {anomaly_mean:.4f} +- {anomaly_std:.4f}")
 
             if self.val_data:
@@ -261,19 +230,19 @@ class Trainer:
                         json.dump(self.params, f)
 
             else:
-                mean_relation = (anomaly_mean - anomaly_std )/(self.params["mean"] + self.params["std"])
-                median_relation = (anomaly_median - anomaly_std )/(self.params["median"] + self.params["std"])
-                score = mean_relation + median_relation
-                print(f"Diff score: {score:.4f}")
+                sorted_anomaly = sorted(anomaly_losses)
+                sorted_normal = sorted(val_losses)
+                score = np.mean(sorted_anomaly[:200]) - np.mean(sorted_normal[-200:])
+                print(f"Score: {score}")
                 if score > self.best_score:
                     self.best_score = score
                     self.best_params = self.params
                     self.best_model = self.model
+
                 if save_model:
                     torch.save(self.model.state_dict(), f"{self.output_model_name}_score_{score:.4f}.pt")
-                    with open(f"{self.output_model_name}_score_{score:.4f}.json", "w") as f:
+                    with open(f"{self.output_model_name}_score_{score}.json", "w") as f:
                         json.dump(self.params, f)
-
             print("-" * 50)
 
 

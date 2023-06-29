@@ -63,9 +63,9 @@ def from_landmarks_to_array(landmarks):
     """
     Converts landmarks to a numpy array
     :param landmarks: landmarks
-    :return: numpy array with shape (32, 4)
+    :return: numpy array with shape (32, 3)
     """
-    res = np.zeros((32, 4))
+    res = np.zeros((24, 3))
 
     # Here we use the nose landmark as the coefficient for the whole pose
     # We need to exclude the influence of the scene from the data,
@@ -73,9 +73,9 @@ def from_landmarks_to_array(landmarks):
     # and subtract them from the coordinates of all other landmarks
 
     nose_landmark = [landmarks[0].x-0.5, landmarks[0].y-0.2, landmarks[0].z+0.5]
-    landmarks = landmarks[1:]
+    landmarks = landmarks[9:]
     for i, landmark in enumerate(landmarks):
-        res[i] = [landmark.x, landmark.y, landmark.z, landmark.visibility]
+        res[i] = [landmark.x, landmark.y, landmark.z]
         res[i][0] -= nose_landmark[0]
         res[i][1] -= nose_landmark[1]
         res[i][2] -= nose_landmark[2]

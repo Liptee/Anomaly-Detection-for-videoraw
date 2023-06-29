@@ -21,10 +21,10 @@ def test(source):
             results.pose_landmarks.landmark[0].x = 0.5
             results.pose_landmarks.landmark[0].x = 0.2
             results.pose_landmarks.landmark[0].x = -0.5
-            for i in range(1, 33):
-                results.pose_landmarks.landmark[i].x = arr[i - 1][0]
-                results.pose_landmarks.landmark[i].y = arr[i - 1][1]
-                results.pose_landmarks.landmark[i].z = arr[i - 1][2]
+            for i in range(9, 33):
+                results.pose_landmarks.landmark[i].x = arr[i - 9][0]
+                results.pose_landmarks.landmark[i].y = arr[i - 9][1]
+                results.pose_landmarks.landmark[i].z = arr[i - 9][2]
                 results.pose_landmarks.landmark[i].visibility = 1
             mp_drawing.draw_landmarks(
                 frame, results.pose_landmarks, mp.solutions.pose.POSE_CONNECTIONS)
@@ -33,4 +33,4 @@ def test(source):
             break
     cap.release()
 
-test(0)
+test("cptn.mp4")
