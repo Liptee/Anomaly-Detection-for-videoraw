@@ -1,6 +1,5 @@
 from models import Transformer, RNN, LSTM
 from sklearn.model_selection import train_test_split
-from sklearn.metrics import f1_score, accuracy_score
 import torch
 from torch import nn, optim
 from torch.utils.data import DataLoader, Dataset
@@ -9,7 +8,6 @@ import pickle
 import numpy as np
 import json
 
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 class Trainer:
     def __init__(self,
                  params: dict,
@@ -50,7 +48,7 @@ class Trainer:
         self.best_model = None
         self.best_params = None
         self.best_loss = 1000000.0
-        self.best_score = 0.0
+        self.best_score = -100000
 
     def add_data(self, path_to_dir, file_format: str = "mp4", rewrite=False):
         if self.data is None:
@@ -118,7 +116,7 @@ class Trainer:
             self.anomaly_data.extend(data)
             print(f"Size of anomaly data: {np.array(self.anomaly_data).shape}")
 
-    def create_validatation_set(self, test_size=0.2):
+    def create_validation_set(self, test_size=0.2):
         self.data, val_data = train_test_split(self.data, test_size=test_size)
         if self.val_data is None:
             self.val_data = val_data
@@ -144,9 +142,7 @@ class Trainer:
             with open(f"{self.output_model_name}_loss_{self.best_loss:.4f}.json", "w") as f:
                 json.dump(self.best_params, f)
 
-    def train(self, save_model: bool = False, transpose=(0, 3, 1, 2)):
-        if transpose[0] != 0:
-            raise ValueError("First dimension must be batch size in transpose. Change transpose parameter")
+    def train(self, save_model: bool = False):
         if self.data is None:
             raise ValueError("No data added to the model")
 
@@ -164,15 +160,15 @@ class Trainer:
 
         if self.anomaly_data:
             anomaly_data = np.array(self.anomaly_data, dtype=np.float32)
-            anomaly_data = anomaly_data.reshape((anomaly_data.shape[0], anomaly_data.shape[1], anomaly_data.shape[2] * anomaly_data.shape[3]))
+            anomaly_data = anomaly_data.reshape(
+                (anomaly_data.shape[0], anomaly_data.shape[1], anomaly_data.shape[2] * anomaly_data.shape[3]))
             anomaly_dataset = MyDataset(np.array(anomaly_data))
             anomaly_dataloader = DataLoader(anomaly_dataset, batch_size=1)
 
-        train_losses = []
-        val_losses = []
-        anomaly_losses = []
-
         for epoch in range(self.num_epochs):
+            train_losses = []
+            val_losses = []
+            anomaly_losses = []
             print(f"Epoch {epoch + 1}/{self.num_epochs}")
             self.model.train()
             for batch in dataloader:
@@ -205,7 +201,8 @@ class Trainer:
                         output = self.model(batch)
                         loss = self.criterion(output, batch)
                         anomaly_losses.append(loss.item())
-                anomaly_mean, anomaly_median, anomaly_std, anomaly_min, anomaly_max = return_statisctic_for_list(anomaly_losses)
+                anomaly_mean, anomaly_median, anomaly_std, anomaly_min, anomaly_max = return_statisctic_for_list(
+                    anomaly_losses)
                 print(f"Anomaly loss: {anomaly_mean:.4f} +- {anomaly_std:.4f}")
 
             if self.val_data:
@@ -233,28 +230,18 @@ class Trainer:
                         json.dump(self.params, f)
 
             else:
-                Y = list(np.zeros(len(anomaly_losses))) + list(np.ones(len(val_losses)))
-                ths = np.linspace(0, self.params["mean"], num=100)
-                best_score = 0.0
-                best_accuracy = 0.0
-                for threshold in ths:
-                    y_pred = [0 if x < threshold else 1 for x in anomaly_losses + val_losses]
-                    score = f1_score(Y, y_pred, average="weighted")
-                    if score > best_score:
-                        best_score = score
-                        best_accuracy = accuracy_score(Y, y_pred)
-                        self.params["threshold"] = threshold
-                        if score > self.best_score:
-                            self.best_score = score
-                            self.best_params = self.params
-                            self.best_model = self.model
+                sorted_anomaly = sorted(anomaly_losses)
+                sorted_normal = sorted(val_losses)
+                score = np.mean(sorted_anomaly[:200]) - np.mean(sorted_normal[-200:])
+                print(f"Score: {score}")
+                if score > self.best_score:
+                    self.best_score = score
+                    self.best_params = self.params
+                    self.best_model = self.model
 
-                print(f"Best threshold: {self.params['threshold']:.4f}")
-                print(f"f1-score: {best_score:.4f}")
-                print(f"accuracy: {best_accuracy:.4f}")
                 if save_model:
                     torch.save(self.model.state_dict(), f"{self.output_model_name}_score_{score:.4f}.pt")
-                    with open(f"{self.output_model_name}_score_{score:.4f}.json", "w") as f:
+                    with open(f"{self.output_model_name}_score_{score}.json", "w") as f:
                         json.dump(self.params, f)
             print("-" * 50)
 

@@ -98,17 +98,10 @@ def demo(source,
             last_frame = last_frame.reshape(24, 3)
 
             for i in range(33):
-                # print(f"x{i} before: {results.pose_landmarks.landmark[i].x}")
-                # print(f"y{i} before: {results.pose_landmarks.landmark[i].y}")
-                # print(f"z{i} before: {results.pose_landmarks.landmark[i].z}")
                 if i > 9:
                     results.pose_landmarks.landmark[i].x = last_frame[i-9][0]
                     results.pose_landmarks.landmark[i].y = last_frame[i-9][1]
                     results.pose_landmarks.landmark[i].z = last_frame[i-9][2]
-                # print(f"x{i} after: {results.pose_landmarks.landmark[i].x}")
-                # print(f"y{i} after: {results.pose_landmarks.landmark[i].y}")
-                # print(f"z{i} after: {results.pose_landmarks.landmark[i].z}")
-                # print("-"*50)
             mp_drawing.draw_landmarks(
                 predicted_landmarks_frame, results.pose_landmarks, mp.solutions.pose.POSE_CONNECTIONS)
 
@@ -116,7 +109,6 @@ def demo(source,
         original_landmarks_frame = cv2.resize(original_landmarks_frame, (WIDTH, HEIGHT))
         predicted_landmarks_frame = cv2.resize(predicted_landmarks_frame, (WIDTH, HEIGHT))
 
-        # draw losses plot for plot_frame with matplotlib
         fig, ax = plt.subplots()
         plt.plot(losses)
         plt.axhline(y=threshold, color='orange', linestyle='-')
@@ -139,20 +131,5 @@ def demo(source,
         cv2.imshow("Demo", final_frame)
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break
-    # close cap
+
     cap.release()
-
-
-if __name__ == "__main__":
-    for_demo = ["data/final_test_anomaly/obj_1/IR/normal/goes_to_left.mp4",
-                "data/final_test_anomaly/obj_1/IR/anomaly/armed_penetration.mp4",
-                "data/final_test_anomaly/obj_1/IR/anomaly/hostage_taking2.mp4",
-                "data/final_test_anomaly/obj_1/IR/normal/walks_on_the_spot.mp4"]
-    for video in for_demo:
-        demo(video,
-             "models/model_64_16_score_0.4673.pt",
-             "models/model_64_16_score_0.4673.json",
-             model_type="lstm",
-             criterion=torch.nn.MSELoss(),
-             transpose=(2, 0, 1),
-             scale=2.5)
