@@ -1,6 +1,8 @@
 def init_transformer_params(input_size=72,
                             hidden_size=512,
                             num_layers=4):
+    if hidden_size % 4 != 0:
+        raise ValueError("hidden_size must be divisible by 4")
     params = {
         "input_size": input_size,
         "hidden_size": hidden_size,
