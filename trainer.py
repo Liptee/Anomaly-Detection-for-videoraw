@@ -8,6 +8,7 @@ import pickle
 import numpy as np
 import json
 
+
 class Trainer:
     def __init__(self,
                  params: dict,
@@ -44,7 +45,7 @@ class Trainer:
         self.data = None
         self.val_data = None
         self.anomaly_data = None
-        self.output_model_name = "default_model"
+        self.output_model_name = "model"
         self.best_model = None
         self.best_params = None
         self.best_loss = 1000000.0
@@ -57,7 +58,7 @@ class Trainer:
         metadata_list = load_data(path_to_dir, "pkl")
 
         for path in files_list:
-            name = path.split(".")[0]
+            name = path.split(".")[-2]
             if f"{name}.pkl" in metadata_list and not rewrite:
                 print(f"Extracting data from {name}.pkl...")
                 with open(f"{name}.pkl", "rb") as f:
@@ -79,11 +80,12 @@ class Trainer:
         metadata_list = load_data(path_to_dir, "pkl")
 
         for path in files_list:
-            name = path.split(".")[0]
+            name = path.split(".")[-2]
             if f"{name}.pkl" in metadata_list and not rewrite:
                 print(f"Extracting data from {name}.pkl...")
                 with open(f"{name}.pkl", "rb") as f:
                     sequential = pickle.load(f)
+
             else:
                 sequential = extract_sequential(path, make_mirrors=True)
                 with open(f"{name}.pkl", "wb") as f:
@@ -101,7 +103,7 @@ class Trainer:
         metadata_list = load_data(path_to_dir, "pkl")
 
         for path in files_list:
-            name = path.split(".")[0]
+            name = path.split(".")[-2]
             if f"{name}.pkl" in metadata_list and not rewrite:
                 print(f"Extracting data from {name}.pkl...")
                 with open(f"{name}.pkl", "rb") as f:
